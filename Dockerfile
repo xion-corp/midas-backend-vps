@@ -11,7 +11,7 @@ COPY package*.json ./
 COPY package-lock.json* ./
 
 # Install ALL dependencies (including dev for build)
-RUN npm ci
+RUN npm install --frozen-lockfile
 
 # ============================================
 # Stage 2: Build
@@ -54,7 +54,7 @@ COPY package*.json ./
 COPY package-lock.json* ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev --frozen-lockfile && npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
