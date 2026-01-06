@@ -1,5 +1,5 @@
 # ============================================
-# Stage 1: Dependencies
+# Stage 1: Dependencies (All deps for build)
 # ============================================
 FROM node:20-alpine AS deps
 WORKDIR /app
@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install ALL dependencies (including dev for build)
+RUN npm ci
 
 # ============================================
 # Stage 2: Build
@@ -16,11 +16,11 @@ RUN npm ci --only=production && npm cache clean --force
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Copy all dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
 # Copy package files
 COPY package*.json ./
-
-# Install all dependencies (including dev)
-RUN npm ci
 
 # Copy source code
 COPY . .
@@ -29,7 +29,7 @@ COPY . .
 RUN npm run build
 
 # ============================================
-# Stage 3: Production
+# Stage 3: Production (Only production deps)
 # ============================================
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -41,13 +41,14 @@ ENV NODE_ENV=production
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
-# Copy necessary files from deps stage
-COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
-
 # Switch to non-root user
 USER nestjs
 
