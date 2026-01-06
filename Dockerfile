@@ -4,9 +4,11 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package files AND lock file
+# Copy package files first
 COPY package*.json ./
-COPY package-lock.json ./
+
+# Copy lock file if it exists
+COPY package-lock.json* ./
 
 # Install ALL dependencies (including dev for build)
 RUN npm ci
@@ -20,9 +22,11 @@ WORKDIR /app
 # Copy all dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy package files and lock file
+# Copy package files
 COPY package*.json ./
-COPY package-lock.json ./
+
+# Copy lock file if it exists
+COPY package-lock.json* ./
 
 # Copy source code
 COPY . .
@@ -43,9 +47,11 @@ ENV NODE_ENV=production
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
-# Copy package files and lock file
+# Copy package files
 COPY package*.json ./
-COPY package-lock.json ./
+
+# Copy lock file if it exists
+COPY package-lock.json* ./
 
 # Install only production dependencies
 RUN npm ci --omit=dev && npm cache clean --force
